@@ -1,0 +1,15 @@
+.env
+
+# Operating-system files
+.DS_Store
+
+# Python build and environment artifacts
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Local runtime artifacts
+logs/
+*.log
+*.db
