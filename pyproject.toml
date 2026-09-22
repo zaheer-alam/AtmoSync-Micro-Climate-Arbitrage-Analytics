@@ -1,7 +1,15 @@
 [project]
 name = "atmosync-micro-climate-arbitrage-analytics"
 version = "0.1.0"
-description = "Add your description here"
+description = "IoT telemetry ingestion and micro-climate analytics"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "kafka-python>=2.2,<4",
+    "python-dotenv>=1,<2",
+    "requests>=2.32,<3",
+    "snowflake-connector-python>=3.12,<5",
+]
+
+[project.optional-dependencies]
+dbt = ["dbt-snowflake>=1.9,<2"]
