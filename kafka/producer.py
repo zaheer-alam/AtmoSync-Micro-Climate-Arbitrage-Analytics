@@ -3,6 +3,9 @@ import json
 import time
 import sys
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Allow Python to find the simulator module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -11,7 +14,7 @@ from simulator.sensor_simulator import generate_sensor_data
 
 
 producer = KafkaProducer(
-    bootstrap_servers="localhost:9092",
+    bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092").split(","),
     value_serializer=lambda v: json.dumps(v).encode("utf-8")
 )
 
@@ -29,7 +32,7 @@ try:
         data = generate_sensor_data()
 
         producer.send(
-            "atmosync-sensor-data",
+            os.getenv("KAFKA_TOPIC", "atmosync-sensor-data"),
             value=data
         )
 

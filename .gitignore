@@ -1,4 +1,8 @@
 .env
+.env.*
+!.env.example
+*.pem
+*.p8
 
 # Operating-system files
 .DS_Store
