@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    database: ATMOSYNC
+    schema: RAW
+    tables:
+      - name: sensor_data
+        identifier: SENSOR_DATA
