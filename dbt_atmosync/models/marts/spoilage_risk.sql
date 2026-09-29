@@ -7,6 +7,7 @@ with sensor_data as (
         humidity,
         rainfall,
         wind_speed,
+        vibration,
         recorded_at
     from {{ ref('stg_sensor_data') }}
 
@@ -17,15 +18,14 @@ risk_calculation as (
     select
         *,
         case
-            when temperature >= 30 then 70
-            when temperature >= 25 then 50
-            when temperature >= 20 then 30
-            else 10
+            when humidity >= 85 then 20
+            when humidity >= 70 then 10
+            else 0
         end
         +
         case
-            when humidity >= 85 then 20
-            when humidity >= 70 then 10
+            when vibration >= 4 then 10
+            when vibration >= 2.5 then 5
             else 0
         end as risk_score
 
@@ -40,6 +40,7 @@ select
     humidity,
     rainfall,
     wind_speed,
+    vibration,
     recorded_at,
     risk_score,
 
