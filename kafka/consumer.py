@@ -56,9 +56,10 @@ try:
                 HUMIDITY,
                 RAINFALL,
                 WIND_SPEED,
+                VIBRATION,
                 RECORDED_AT
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             data["container_id"],
             data["location"],
@@ -66,6 +67,7 @@ try:
             data["humidity"],
             data["rainfall"],
             data["wind_speed"],
+            data.get("vibration"),
             data["timestamp"]
         ))
 

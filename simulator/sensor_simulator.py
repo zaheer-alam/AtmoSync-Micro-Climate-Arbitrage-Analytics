@@ -20,7 +20,7 @@ def generate_sensor_data():
     humidity = round(random.uniform(40, 90), 2)
     rainfall = round(random.uniform(0, 10), 2)
     wind_speed = round(random.uniform(5, 25), 2)
-
+    vibration = round(random.uniform(0.1, 5.0), 2)
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     return {
@@ -30,6 +30,7 @@ def generate_sensor_data():
         "humidity": humidity,
         "rainfall": rainfall,
         "wind_speed": wind_speed,
+        "vibration": vibration,
         "timestamp": timestamp
     }
 
@@ -51,6 +52,7 @@ def main():
         print("Humidity:", data["humidity"], "%")
         print("Rainfall:", data["rainfall"], "mm")
         print("Wind Speed:", data["wind_speed"], "km/h")
+        print("Vibration:", data["vibration"], "g")
         print("Timestamp:", data["timestamp"])
         print()
 
