@@ -17,3 +17,4 @@ venv/
 logs/
 *.log
 *.db
+superset-data-backup.tar.gz

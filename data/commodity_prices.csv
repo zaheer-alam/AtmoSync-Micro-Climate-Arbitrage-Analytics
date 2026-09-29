@@ -1,0 +1,6 @@
+commodity,market,price_per_kg,distance_km
+Avocado,Pune,180,50
+Avocado,Mumbai,220,150
+Avocado,Nashik,200,210
+Avocado,Bangalore,240,850
+Avocado,Delhi,260,1400
