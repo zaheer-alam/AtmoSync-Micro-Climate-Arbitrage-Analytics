@@ -13,3 +13,6 @@ sources:
 
       - name: market_routes
         identifier: MARKET_ROUTES
+      
+      - name: historical_commodity_prices
+        identifier: HISTORICAL_COMMODITY_PRICES
