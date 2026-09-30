@@ -1,0 +1,17 @@
+services:
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: atmosync-superset:local
+    container_name: atmosync-superset
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: "${SUPERSET_SECRET_KEY}"
+    volumes:
+      - superset-data:/app/superset_home
+    restart: unless-stopped
+
+volumes:
+  superset-data:

@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: raw
+    database: ATMOSYNC
+    schema: RAW
+    tables:
+      - name: sensor_data
+        identifier: SENSOR_DATA
+
+      - name: commodity_prices
+        identifier: COMMODITY_PRICES
+
+      - name: market_routes
+        identifier: MARKET_ROUTES
+      
+      - name: historical_commodity_prices
+        identifier: HISTORICAL_COMMODITY_PRICES
