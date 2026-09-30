@@ -31,4 +31,4 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
           SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-          run: uv run --locked --extra dbt dbt build --project-dir dbt_atmosync --profiles-dir dbt_atmosync/profiles
+        run: uv run --locked --extra dbt dbt build --project-dir dbt_atmosync --profiles-dir dbt_atmosync/profiles
