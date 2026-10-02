@@ -68,7 +68,10 @@ def send_email_alert(containers):
 
     message.set_content("\n".join(lines))
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as smtp:
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.ehlo()
         smtp.login(sender, password)
         smtp.send_message(message)
 
