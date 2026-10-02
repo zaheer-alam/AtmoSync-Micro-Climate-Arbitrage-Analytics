@@ -1,200 +1,552 @@
 # AtmoSync – Micro-Climate Arbitrage Analytics
+
+AtmoSync is an end-to-end data analytics project for monitoring micro-climate conditions around agricultural commodity containers, identifying potential spoilage risk, and evaluating possible market rerouting opportunities before estimated commodity degradation.
+
+The project combines simulated IoT telemetry, Apache Kafka streaming, Snowflake warehousing, dbt transformations, Apache Superset dashboards, GitHub Actions automation, and high-risk email alerts.
+
+---
+
 ## Architecture
 
 ```text
 Python IoT Simulator
         ↓
-      Kafka
+Apache Kafka
         ↓
-    Snowflake
+Snowflake
         ↓
-       dbt
+dbt
         ↓
- Apache Superset
+Apache Superset
+        ↓
+Risk Monitoring
+        ↓
+Gmail Email Alert
 ```
+
+---
 
 ## Tech Stack
 
-- Python
+- Python 3.12
 - Apache Kafka
+- Docker & Docker Compose
 - Snowflake
-- dbt
+- dbt Core + dbt-snowflake
 - Apache Superset
 - Git & GitHub
-- uv for Python environment/dependency management
+- GitHub Actions
+- Gmail SMTP
+- uv
+- SQLite
+
+---
 
 ## Project Structure
 
 ```text
 AtmoSync/
 │
-├── simulator/       # IoT sensor data generator
-├── kafka/           # Kafka producer/consumer
-├── snowflake/       # Snowflake SQL and ingestion
-├── dbt_atmosync/    # dbt transformations
-├── superset/        # Dashboard-related files
-├── data/            # Reference/sample data
+├── .github/
+│   └── workflows/          # GitHub Actions workflows
+├── alerts/                 # High-risk email alerts
+├── app/                    # Analytics/application logic
+├── data/                   # Sample and reference datasets
+├── dbt_atmosync/           # dbt staging, marts and tests
+├── kafka/                  # Kafka producer and consumers
+├── models/                 # Python data models
+├── simulator/              # IoT sensor simulator
+├── snowflake/              # Snowflake connection and loaders
+├── superset/               # Superset Docker configuration
+├── utils/                  # Utility modules
 │
+├── .env.example
 ├── .gitignore
+├── .python-version
+├── compose.yaml
+├── config.py
+├── database.py
+├── main.py
 ├── pyproject.toml
+├── requirements.txt
 ├── uv.lock
 └── README.md
 ```
 
-## Setup
+---
 
-### 1. Clone the repository
+## Core Features
+
+### 1. IoT Sensor Simulation
+
+The simulator generates mock telemetry for agricultural commodity containers.
+
+Each sensor event contains:
+
+- Container ID
+- Location
+- Temperature
+- Humidity
+- Rainfall
+- Wind speed
+- Vibration
+- Timestamp
+
+Run the simulator:
+
+```bash
+uv run --locked python simulator/sensor_simulator.py
+```
+
+---
+
+### 2. Apache Kafka Streaming
+
+Apache Kafka provides the streaming layer for IoT telemetry.
+
+Main topic:
+
+```text
+atmosync-sensor-data
+```
+
+Start Kafka:
+
+```bash
+docker compose up -d --wait
+```
+
+Create the topic if required:
+
+```bash
+docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server localhost:9092 \
+  --create \
+  --if-not-exists \
+  --topic atmosync-sensor-data \
+  --partitions 1 \
+  --replication-factor 1
+```
+
+Run the producer:
+
+```bash
+uv run --locked python kafka/producer.py
+```
+
+Run the Snowflake consumer in another terminal:
+
+```bash
+uv run --locked python kafka/consumer.py
+```
+
+The consumer transfers Kafka telemetry into Snowflake.
+
+---
+
+## Snowflake Data Warehouse
+
+Snowflake acts as the central analytics warehouse.
+
+The project processes data for:
+
+- Sensor telemetry
+- Commodity prices
+- Historical commodity prices
+- Market routes
+- City weather summaries
+- Spoilage risk
+- Spoilage arbitrage
+
+The primary telemetry table is:
+
+```text
+ATMOSYNC.RAW.SENSOR_DATA
+```
+
+Test the Snowflake connection:
+
+```bash
+uv run --locked python snowflake/test_connection.py
+```
+
+Credentials are loaded from environment variables and must not be committed to Git.
+
+---
+
+## dbt Analytics
+
+dbt transforms raw Snowflake data into analytics-ready staging and mart models.
+
+Install dbt dependencies:
+
+```bash
+uv sync --locked --extra dbt
+```
+
+Run the complete dbt pipeline:
+
+```bash
+uv run --locked --extra dbt dbt build --project-dir dbt_atmosync
+```
+
+### Staging Layer
+
+Staging models clean and standardize:
+
+- Sensor data
+- Commodity prices
+- Historical commodity prices
+- Market routes
+
+Staging models are materialized as Snowflake views.
+
+### Analytics Marts
+
+Important mart models include:
+
+#### `city_weather_summary`
+
+Provides city-level micro-climate analytics.
+
+#### `commodity_price_trends`
+
+Analyses historical commodity price movements across markets.
+
+#### `spoilage_risk`
+
+Calculates a demonstration spoilage-risk score using:
+
+- Temperature
+- Humidity
+- Vibration
+
+Risk classification:
+
+```text
+HIGH    → Risk Score >= 70
+MEDIUM  → Risk Score >= 40
+LOW     → Risk Score < 40
+```
+
+#### `spoilage_arbitrage`
+
+Combines spoilage risk with market and route information to evaluate potential rerouting opportunities.
+
+The model considers:
+
+- Current location
+- Risk score and risk level
+- Estimated hours to spoil
+- Commodity prices
+- Route distance
+- Estimated travel time
+- Arbitrage gain per kg
+- Safety margin
+
+Analytics marts are materialized as Snowflake tables for repeated BI queries.
+
+---
+
+## Spoilage Arbitrage Use Case
+
+The primary analytical workflow is:
+
+```text
+Container Telemetry
+        ↓
+Spoilage Risk
+        ↓
+Estimated Spoilage Time
+        ↓
+Market Prices + Route Distance
+        ↓
+Travel-Time Feasibility
+        ↓
+Potential Rerouting Opportunity
+```
+
+For example, when environmental conditions increase estimated spoilage risk, AtmoSync can evaluate whether another market is reachable within the estimated safe time and whether that route provides a potential price advantage.
+
+The current risk scoring, commodity prices, route distances, spoilage-time estimates, and transport-speed assumptions are demonstration values for this academic project. They are not scientifically validated spoilage predictions or guaranteed trading profits.
+
+---
+
+## Apache Superset Dashboards
+
+Start Superset:
+
+```bash
+docker compose --env-file .env -f superset/compose.yaml up -d
+```
+
+Open:
+
+```text
+http://localhost:8088
+```
+
+Two dashboards are included in the project.
+
+### AtmoSync Micro-Climate Analytics
+
+Published dashboard for environmental telemetry monitoring.
+
+Visualizations include:
+
+- Average Temperature by City
+- Average Humidity by City
+- Average Rainfall by City
+- Average Wind Speed by City
+- Total Readings by City
+
+### AtmoSync Spoilage Arbitrage Dashboard
+
+Published dashboard for supply-chain risk and rerouting analytics.
+
+Visualizations include:
+
+- At-Risk Containers & Reroute Recommendations
+- Arbitrage Gain by Container
+- Risk Level Distribution
+- Time to Spoil vs Travel Time
+- Historical Commodity Price Trends
+
+---
+
+## High-Risk Email Alerts
+
+AtmoSync includes Gmail SMTP-based alerts for HIGH-risk containers.
+
+Run the alert:
+
+```bash
+uv run --locked python alerts/high_risk_alert.py
+```
+
+The script queries the Snowflake `SPOILAGE_RISK` model and sends an email when HIGH-risk containers are detected.
+
+Required environment variables:
+
+```text
+ALERT_EMAIL_SENDER
+ALERT_EMAIL_PASSWORD
+ALERT_EMAIL_RECEIVER
+```
+
+For Gmail, use an App Password rather than the normal Google account password.
+
+Never commit email credentials to Git.
+
+---
+
+## GitHub Actions Automation
+
+The project includes an automated dbt workflow:
+
+```text
+.github/workflows/dbt.yml
+```
+
+The workflow:
+
+1. Checks out the repository
+2. Installs uv
+3. Installs Python 3.12
+4. Installs project and dbt dependencies
+5. Connects to Snowflake using GitHub Repository Secrets
+6. Runs the dbt build and data-quality tests
+
+The scheduled build runs daily at:
+
+```text
+01:30 UTC
+07:00 IST
+```
+
+The workflow can also be triggered manually from GitHub Actions.
+
+---
+
+## Data Quality
+
+dbt tests validate important analytics fields across staging and mart models.
+
+The project validates fields such as:
+
+- Container ID
+- Location
+- Temperature
+- Risk score
+- Risk level
+- Recommended market
+
+Some legacy telemetry generated before vibration support can contain null vibration values. The project does not fabricate historical vibration measurements for those records.
+
+---
+
+## Local Weather CLI
+
+AtmoSync also contains a menu-driven local weather application.
+
+Run:
+
+```bash
+uv run --locked python main.py
+```
+
+Features include:
+
+1. Get weather
+2. View saved climate data
+3. Calculate average temperature
+4. Exit
+
+Weather observations are stored in a local SQLite database.
+
+---
+
+## Installation and Setup
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/zaheer-alam/AtmoSync-Micro-Climate-Arbitrage-Analytics.git
 cd AtmoSync-Micro-Climate-Arbitrage-Analytics
 ```
 
-### 2. Install uv
+### 2. Install Dependencies
 
-Make sure `uv` is installed on your system.
-
-### 3. Set up the project environment
+Install uv first, then run:
 
 ```bash
 uv sync --locked
 ```
 
-This automatically creates `.venv` and installs the required dependencies.
-
-You do **not** need to manually create a virtual environment.
-
-### 4. Run Python scripts
-
-Example:
+For dbt:
 
 ```bash
-uv run python simulator/sensor_simulator.py
+uv sync --locked --extra dbt
 ```
 
-Run commands from the repository root. Python 3.12 or newer is required.
-The weather CLI is available with `uv run --locked python main.py`; it writes to
-the local SQLite database and needs internet access for weather lookups.
+### 3. Configure Environment Variables
 
-### 5. Run the local telemetry demo
+Use `.env.example` as the configuration reference.
 
-Start Docker Desktop first. This single-node broker is for local development;
-its port is exposed only on the local machine. Configuration follows the
-[official Apache Kafka Docker setup](https://kafka.apache.org/39/getting-started/docker/).
+Create a local `.env` file containing the required Kafka, Snowflake, Superset, and email-alert settings.
+
+Never commit the real `.env` file.
+
+### 4. Start Kafka
 
 ```bash
 docker compose up -d --wait
-docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic atmosync-sensor-data --partitions 1 --replication-factor 1
+```
+
+### 5. Run the Producer
+
+```bash
 uv run --locked python kafka/producer.py
 ```
 
-In another terminal at the repository root:
+### 6. Run the Consumer
+
+In another terminal:
 
 ```bash
-uv run --locked python kafka/consumer_backup.py
+uv run --locked python kafka/consumer.py
 ```
 
-Expect a sensor event approximately every five seconds. This consumer prints
-events without contacting Snowflake. Stop each script with Ctrl+C and stop the
-broker with `docker compose down`. The named volume retains broker data.
-
-Default broker/topic values work without an `.env` file. If customization is
-needed, copy `.env.example` to `.env` only when `.env` does not already exist;
-otherwise add the missing settings to your existing file. A comma-separated
-`KAFKA_BOOTSTRAP_SERVERS` list and `KAFKA_TOPIC` are supported by all Kafka scripts.
-If you change the topic, create that same topic with the command above.
-
-### 6. Snowflake and dbt prerequisites
-
-`kafka/consumer.py` inserts into an existing `SENSOR_DATA` table using the
-`SNOWFLAKE_*` settings documented in `.env.example`. Table provisioning and
-reliable replay/deduplication are not implemented yet. Do not treat this consumer
-as production-ready: it has no configured consumer group or durable replay policy.
-`snowflake/connection.py` inserts a test row when executed.
-
-Install dbt and the Snowflake adapter with `uv sync --locked --extra dbt`.
-The dbt project still contains starter examples, including a null value that
-fails its `not_null` test. It needs a local credentials profile and telemetry
-models before it is useful. Superset currently has no dashboard assets.
-
-### Dependency maintenance
-
-`pyproject.toml` is the dependency source and `uv.lock` pins resolved versions.
-`requirements.txt` is a generated export for pip users, not a separate package list.
-After changing dependencies, regenerate it with:
+### 7. Run dbt
 
 ```bash
-uv lock
-uv export --locked --no-emit-project --format requirements-txt --output-file requirements.txt
+uv run --locked --extra dbt dbt build --project-dir dbt_atmosync
 ```
 
-The optional dbt dependencies are in the lockfile; the default requirements export
-includes only runtime dependencies. Existing `venv/` environments are not used by uv.
-
-### Delivery roadmap
-
-Track implementation evidence as the project progresses:
-
-1. Reproducible setup and local sensor-to-Kafka demonstration.
-2. Validated telemetry schema, Snowflake table setup, and reliable ingestion.
-3. dbt staging models, data-quality tests, and container-risk analytics.
-4. Superset dashboards with clearly documented analytical assumptions.
-5. Project documentation, report, presentation, and reproducible final demo.
-
-Commit each completed, verified change with a descriptive message. Track authored
-commits separately from the repository total; both include historical work.
-
-## Team Workflow
-
-Create a separate branch for your assigned component.
+### 8. Start Superset
 
 ```bash
-git checkout -b feature/your-feature
+docker compose --env-file .env -f superset/compose.yaml up -d
 ```
 
-After making changes:
+### 9. Run the Alert Check
 
 ```bash
-git add .
-git commit -m "Describe your changes"
-git push -u origin feature/your-feature
+uv run --locked python alerts/high_risk_alert.py
 ```
 
-Then create a Pull Request to merge your branch into `main`.
+---
 
-### Suggested Branches
+## Security
+
+Never commit:
 
 ```text
-feature/iot-simulator
-feature/kafka-pipeline
-feature/snowflake-dbt
-feature/superset-dashboard
-```
-
-## Important
-
-Do not commit:
-
-```text
-.venv/
 .env
-credentials
+.venv/
+Passwords
+Snowflake credentials
+Gmail App Passwords
 API keys
+Superset secret keys
 ```
 
-If new dependencies are added, commit the updated `pyproject.toml` and `uv.lock`.
+Secrets should be stored in local environment variables or GitHub Repository Secrets.
 
-Other team members should then run:
+---
 
-```bash
-git pull
-uv sync
-```
+## Current Limitations
+
+AtmoSync is an academic data-analytics demonstration project.
+
+Current limitations include:
+
+- IoT telemetry is simulated.
+- Commodity prices are mock/sample data.
+- Historical prices are sample data.
+- Market route distances are demonstration data.
+- Spoilage-risk scoring is a heuristic.
+- Transport-time calculations use simplified assumptions.
+- Kafka ingestion is not a production-grade exactly-once pipeline.
+- Superset is configured for local development.
+- Email notification uses a basic SMTP workflow.
+
+---
+
+## Future Improvements
+
+Possible future improvements include:
+
+- Real IoT sensor integration
+- Live commodity-price APIs
+- Real route and traffic data
+- Commodity-specific degradation models
+- Machine-learning-based spoilage prediction
+- Durable Kafka consumer-group and offset management
+- Stronger ingestion deduplication
+- Production Snowflake access controls
+- Production Superset deployment
+- Advanced alerting and monitoring
+- Support for additional commodities and markets
+
+---
 
 ## Project Goal
 
-Build an end-to-end streaming pipeline:
+AtmoSync demonstrates an end-to-end modern data analytics pipeline:
 
-**IoT Telemetry → Kafka → Snowflake → dbt → Superset**
+```text
+IoT Telemetry
+      ↓
+Apache Kafka
+      ↓
+Snowflake
+      ↓
+dbt
+      ↓
+Apache Superset
+      ↓
+Risk Monitoring & Email Alerts
+```
 
-The final dashboard should help identify **at-risk containers and potential rerouting opportunities before commodity quality degrades**.
+The final system demonstrates how streaming telemetry and analytics can be used to monitor micro-climate conditions, identify containers requiring attention, analyse commodity price trends, and evaluate potential rerouting opportunities before estimated commodity degradation.
